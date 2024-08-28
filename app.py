@@ -5,6 +5,45 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+# CSS personnalisé pour styliser les boutons et les éléments de l'interface
+st.markdown("""
+    <style>
+    .button-container {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 10px;
+    }
+    .button-container button {
+        width: 150px;
+        height: 50px;
+        border-radius: 8px;
+        background-color: #f0f0f0;
+        border: 2px solid #bbb;
+        font-size: 16px;
+    }
+    .button-container button.selected {
+        background-color: #007BFF;
+        color: white;
+    }
+    .icon-button {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #007BFF;
+        color: white;
+        font-size: 18px;
+        text-align: center;
+        line-height: 40px;
+        margin-left: 5px;
+        cursor: pointer;
+    }
+    .icon-button:hover {
+        background-color: #0056b3;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Définir les scopes OAuth pour Google Sheets et Google Drive
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
@@ -116,11 +155,27 @@ st.header("Finaliser l'inspection")
 if 'inspection_results' in st.session_state:
     st.subheader("Résumé de l'inspection")
     for index, row in st.session_state.inspection_results.iterrows():
+        # Boutons de conformité stylisés
+        st.write(f"Évaluation pour {row['Critere']}")
         conformity_status = st.radio(
-            f"Évaluation pour {row['Critere']}",
+            "",
             ["Conforme", "Non Conforme", "Non Applicable"],
             key=f"conformity_{index}"
         )
+        conformity_class = "selected" if conformity_status else ""
+        
+        # Affichage des boutons de conformité
+        st.markdown(f"""
+        <div class="button-container">
+            <button class="{conformity_class if conformity_status == 'Conforme' else ''}">Conforme</button>
+            <button class="{conformity_class if conformity_status == 'Non Conforme' else ''}">Non Conforme</button>
+            <button class="{conformity_class if conformity_status == 'Non Applicable' else ''}">Non Applicable</button>
+            <span class="icon-button">✎</span>
+            <span class="icon-button">📷</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Commentaires
         comment = st.text_area(f"Ajouter un commentaire pour {row['Critere']}", key=f"comment_{index}")
         photo_link = st.text_input(f"Lien photo pour {row['Critere']}", key=f"photo_link_{index}")
 
@@ -134,5 +189,4 @@ if 'inspection_results' in st.session_state:
             st.success("Résultats de l'inspection enregistrés avec succès.")
         except Exception as e:
             st.error(f"Erreur lors de l'enregistrement des résultats de l'inspection : {e}")
-
 
