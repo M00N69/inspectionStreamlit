@@ -11,7 +11,7 @@ st.title("Application de Gestion des Checklists d'Inspection avec Google Sheets"
 
 # Connexion à Google Sheets
 conn = st.experimental_connection("gsheets", type=GSheetsConnection)
-df = conn.read(worksheet="<worksheet-name>")  # Remplace par le nom de ton worksheet
+df = conn.read(worksheet="LISTCONTROLE")  # Remplace par le nom réel de ton worksheet
 st.write("Données récupérées depuis Google Sheets:")
 st.dataframe(df)
 
@@ -45,12 +45,12 @@ if uploaded_file:
     edited_df = st.experimental_data_editor(df_upload, num_rows="dynamic")
 
     if st.button("Enregistrer la checklist"):
-        conn.write(worksheet="<LISTCONTROLE>", data=edited_df)
+        conn.write(worksheet="LISTCONTROLE", data=edited_df)
         st.success("Checklist enregistrée avec succès.")
 
 # Étape 2 : Sélection d'une checklist et gestion des inspections
 if st.button("Charger les checklists"):
-    checklists = conn.read(worksheet="<worksheet-name>")
+    checklists = conn.read(worksheet="LISTCONTROLE")
     st.dataframe(checklists)
 
     if not checklists.empty:
@@ -63,7 +63,7 @@ if st.button("Charger les checklists"):
             # Uploader une photo pour l'inspection
             photo = st.file_uploader("Ajouter une photo pour cette inspection", type=["jpg", "jpeg", "png"])
             if photo:
-                folder_id = "<https://drive.google.com/drive/folders/1hwT-4Xszxu7QCnb9jw7M2eVOnQ-kq-8c?hl=fr>"  # ID du dossier dans lequel tu veux stocker les photos
+                folder_id = "1hwT-4Xszxu7QCnb9jw7M2eVOnQ-kq-8c"  # ID du dossier Google Drive
                 file_id = upload_photo(photo, folder_id)
                 st.success(f"Photo téléchargée avec succès. File ID: {file_id}")
 
