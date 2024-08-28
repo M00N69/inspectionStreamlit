@@ -43,6 +43,9 @@ st.markdown("""
     .icon-button:hover {
         background-color: #0056b3;
     }
+    .hidden {
+        display: none;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -157,38 +160,48 @@ st.header("Finaliser l'inspection")
 if 'inspection_results' in st.session_state:
     st.subheader("Résumé de l'inspection")
     for index, row in st.session_state.inspection_results.iterrows():
-        # Boutons de conformité stylisés
-        st.write(f"Évaluation pour {row['Critere']}")
-
+        # Initialiser les états si non présents
         if f"conformity_{index}" not in st.session_state:
             st.session_state[f"conformity_{index}"] = "Non Applicable"
+            st.session_state[f"show_comment_{index}"] = False
+            st.session_state[f"show_photo_{index}"] = False
 
         conformity_status = st.session_state[f"conformity_{index}"]
 
         # Affichage des boutons de conformité
+        conformity_buttons = ["Conforme", "Non Conforme", "Non Applicable"]
+        button_html = ""
+        for status in conformity_buttons:
+            selected_class = "selected" if conformity_status == status else ""
+            button_html += f'<button class="{selected_class}" onclick="document.querySelector(\'#{status}_{index}\').click();">{status}</button>'
+
         st.markdown(f"""
         <div class="button-container">
-            <button class="{'selected' if conformity_status == 'Conforme' else ''}" onclick="document.getElementById('form_{index}').submit();">Conforme</button>
-            <button class="{'selected' if conformity_status == 'Non Conforme' else ''}" onclick="document.getElementById('form_{index}').submit();">Non Conforme</button>
-            <button class="{'selected' if conformity_status == 'Non Applicable' else ''}" onclick="document.getElementById('form_{index}').submit();">Non Applicable</button>
-            <span class="icon-button" onclick="document.getElementById('comment_{index}').style.display='block';">✎</span>
+            {button_html}
+            <span class="icon-button" onclick="document.getElementById('comment_{index}').click();">✎</span>
             <span class="icon-button" onclick="document.getElementById('photo_{index}').click();">📷</span>
         </div>
         """, unsafe_allow_html=True)
 
-        # Capture de la sélection des boutons
-        if conformity_status == "Conforme":
-            st.session_state[f"conformity_{index}"] = "Conforme"
-        elif conformity_status == "Non Conforme":
-            st.session_state[f"conformity_{index}"] = "Non Conforme"
-        else:
-            st.session_state[f"conformity_{index}"] = "Non Applicable"
+        # Bouton de conformité invisible utilisé pour changer l'état
+        st.radio("", conformity_buttons, key=f"conformity_{index}", label_visibility="collapsed", index=conformity_buttons.index(conformity_status))
 
-        # Champs de commentaire et d'upload de photo
-        comment_visibility = "block" if conformity_status == "Non Conforme" else "none"
-        st.text_area(f"Ajouter un commentaire pour {row['Critere']}", key=f"comment_{index}", value="", style=f"display:{comment_visibility};")
+        # Affichage conditionnel des champs de commentaire et de photo
+        if st.button("Commentaire", key=f"comment_{index}"):
+            st.session_state[f"show_comment_{index}"] = not st.session_state[f"show_comment_{index}"]
 
-        # Uploader une photo lorsqu'on clique sur l'icône photo
-        st.file_uploader("", key=f"photo_{index}", type=["jpg", "jpeg", "png"], accept_multiple_files=False, style="display:none;")
+        if st.session_state[f"show_comment_{index}"]:
+            st.text_area(f"Ajouter un commentaire pour {row['Critere']}", key=f"comment_text_{index}")
 
-        st.session_state.inspection_results.at[index, 'Conformité'] = st.session_state[f"conformity_{index}"]
+        if st.button("Photo", key=f"photo_{index}"):
+            st.session_state[f"show_photo_{index}"] = not st.session_state[f"show_photo_{index}"]
+
+        if st.session_state[f"show_photo_{index}"]:
+            st.file_uploader(f"Uploader une photo pour {row['Critere']}", key=f"photo_upload_{index}", type=["jpg", "jpeg", "png"])
+
+    if st.button("Enregistrer les résultats de l'inspection"):
+        try:
+            result_sheet.update([st.session_state.inspection_results.columns.values.tolist()] + st.session_state.inspection_results.values.tolist())
+            st.success("Résultats de l'inspection enregistrés avec succès.")
+        except Exception as e:
+            st.error(f"Erreur lors de l'enregistrement des résultats de l'inspection : {e}")
