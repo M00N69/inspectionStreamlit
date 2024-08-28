@@ -42,12 +42,9 @@ if uploaded_file:
     st.write("Fichier chargé avec succès")
     st.write(df_upload)
 
-    # Ajouter la nouvelle checklist dans Google Sheets
-    st.write("Modifiez les points si nécessaire :")
-    edited_df = st.experimental_data_editor(df_upload, num_rows="dynamic")
-
+    # Modifier les points si nécessaire
     if st.button("Enregistrer la checklist"):
-        sheet.update([edited_df.columns.values.tolist()] + edited_df.values.tolist())
+        sheet.update([df_upload.columns.values.tolist()] + df_upload.values.tolist())
         st.success("Checklist enregistrée avec succès.")
 
 # Étape 2 : Sélection d'une checklist et gestion des inspections
@@ -101,3 +98,4 @@ if 'filtered_checklist' in locals() and not filtered_checklist.empty:
         result_sheet = gc.open("LISTCONTROLE").worksheet("resultat")
         result_sheet.update([inspection_results.columns.values.tolist()] + inspection_results.values.tolist())
         st.success("Résultats de l'inspection enregistrés avec succès.")
+
