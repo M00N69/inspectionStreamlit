@@ -19,7 +19,7 @@ credentials = Credentials.from_service_account_info(
 # Connexion à Google Sheets via gspread
 gc = gspread.authorize(credentials)
 try:
-    sheet = gc.open("LISTCONTROLE").worksheet("table")  # Remplace "Sheet1" par le nom de ton worksheet réel
+    sheet = gc.open("LISTCONTROLE").worksheet("table")  # Remplace "table" par le nom réel de ton worksheet
 except Exception as e:
     st.error(f"Erreur lors de la connexion à Google Sheets : {e}")
     st.stop()
@@ -87,10 +87,11 @@ if st.button("Charger les checklists"):
         st.stop()
 
     if not df_checklists.empty:
-        selected_checklist = st.selectbox("Choisir une checklist", options=df_checklists["Checklist Name"].unique())
-        if selected_checklist:
-            st.write(f"Checklist sélectionnée : {selected_checklist}")
-            filtered_checklist = df_checklists[df_checklists["Checklist Name"] == selected_checklist]
+        # Sélection d'une ZONE spécifique pour l'inspection
+        selected_zone = st.selectbox("Choisir une ZONE", options=df_checklists["ZONE"].unique())
+        if selected_zone:
+            st.write(f"ZONE sélectionnée : {selected_zone}")
+            filtered_checklist = df_checklists[df_checklists["ZONE"] == selected_zone]
             st.dataframe(filtered_checklist)
 
             # Uploader une photo pour l'inspection
@@ -116,12 +117,12 @@ if 'filtered_checklist' in locals() and not filtered_checklist.empty:
 
     for index, row in inspection_results.iterrows():
         conformity_status = st.radio(
-            f"Évaluation pour {row['Critère']}",
+            f"Évaluation pour {row['Critere']}",  # Utilisation de la colonne "Critere"
             ["Conforme", "Non Conforme", "Non Applicable"],
             key=f"conformity_{index}"
         )
-        comment = st.text_area(f"Ajouter un commentaire pour {row['Critère']}", key=f"comment_{index}")
-        photo_link = st.text_input(f"Lien photo pour {row['Critère']}", key=f"photo_link_{index}", value=row['Lien Photo'])
+        comment = st.text_area(f"Ajouter un commentaire pour {row['Critere']}", key=f"comment_{index}")
+        photo_link = st.text_input(f"Lien photo pour {row['Critere']}", key=f"photo_link_{index}", value=row['Lien Photo'])
 
         inspection_results.at[index, 'Conformité'] = conformity_status
         inspection_results.at[index, 'Commentaires'] = comment
@@ -134,5 +135,4 @@ if 'filtered_checklist' in locals() and not filtered_checklist.empty:
             st.success("Résultats de l'inspection enregistrés avec succès.")
         except Exception as e:
             st.error(f"Erreur lors de l'enregistrement des résultats de l'inspection : {e}")
-
 
