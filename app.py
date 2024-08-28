@@ -1,23 +1,25 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-# Connexion à Google Sheets via streamlit-gsheets
-st.title("Application de Gestion des Checklists d'Inspection avec Google Sheets")
+# Charger les credentials du service account depuis le fichier secrets.toml
+credentials = Credentials.from_service_account_info(st.secrets["connections"]["gsheets"])
 
-# Connexion à Google Sheets
-conn = st.experimental_connection("gsheets", type=GSheetsConnection)
-df = conn.read(worksheet="LISTCONTROLE")  # Remplace par le nom réel de ton worksheet
+# Connexion à Google Sheets via gspread
+gc = gspread.authorize(credentials)
+sheet = gc.open("LISTCONTROLE").worksheet("Sheet1")  # Remplace "Sheet1" par le nom de ton worksheet réel
+data = sheet.get_all_records()
+df = pd.DataFrame(data)
+
+st.title("Application de Gestion des Checklists d'Inspection avec Google Sheets")
 st.write("Données récupérées depuis Google Sheets:")
 st.dataframe(df)
 
 # Connexion à Google Drive
 def connect_to_gdrive():
-    credentials = Credentials.from_service_account_info(st.secrets["connections"]["gsheets"])
     service = build("drive", "v3", credentials=credentials)
     return service
 
@@ -45,19 +47,20 @@ if uploaded_file:
     edited_df = st.experimental_data_editor(df_upload, num_rows="dynamic")
 
     if st.button("Enregistrer la checklist"):
-        conn.write(worksheet="LISTCONTROLE", data=edited_df)
+        sheet.update([edited_df.columns.values.tolist()] + edited_df.values.tolist())
         st.success("Checklist enregistrée avec succès.")
 
 # Étape 2 : Sélection d'une checklist et gestion des inspections
 if st.button("Charger les checklists"):
-    checklists = conn.read(worksheet="LISTCONTROLE")
-    st.dataframe(checklists)
+    checklists = sheet.get_all_records()
+    df_checklists = pd.DataFrame(checklists)
+    st.dataframe(df_checklists)
 
-    if not checklists.empty:
-        selected_checklist = st.selectbox("Choisir une checklist", options=checklists["Checklist Name"].unique())
+    if not df_checklists.empty:
+        selected_checklist = st.selectbox("Choisir une checklist", options=df_checklists["Checklist Name"].unique())
         if selected_checklist:
             st.write(f"Checklist sélectionnée : {selected_checklist}")
-            filtered_checklist = checklists[checklists["Checklist Name"] == selected_checklist]
+            filtered_checklist = df_checklists[df_checklists["Checklist Name"] == selected_checklist]
             st.dataframe(filtered_checklist)
 
             # Uploader une photo pour l'inspection
@@ -95,5 +98,6 @@ if 'filtered_checklist' in locals() and not filtered_checklist.empty:
 
     if st.button("Enregistrer les résultats de l'inspection"):
         # Enregistrer les résultats dans une nouvelle feuille ou dans un onglet spécifique
-        conn.write(worksheet="resultat", data=inspection_results)
+        result_sheet = gc.open("LISTCONTROLE").worksheet("resultat")
+        result_sheet.update([inspection_results.columns.values.tolist()] + inspection_results.values.tolist())
         st.success("Résultats de l'inspection enregistrés avec succès.")
