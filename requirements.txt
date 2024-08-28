@@ -1,4 +1,6 @@
-streamlit
+streamlit==1.22
+git+https://github.com/streamlit/gsheets-connection
+pandasql
 pandas
-supabase-py
-openpyxl
+gspread
+google-auth
