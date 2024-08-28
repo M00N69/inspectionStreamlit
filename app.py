@@ -19,7 +19,7 @@ credentials = Credentials.from_service_account_info(
 # Connexion à Google Sheets via gspread
 gc = gspread.authorize(credentials)
 try:
-    sheet = gc.open("LISTCONTROLE").worksheet("Sheet1")  # Remplace "Sheet1" par le nom de ton worksheet réel
+    sheet = gc.open("LISTCONTROLE").worksheet("table")  # Remplace "Sheet1" par le nom de ton worksheet réel
 except Exception as e:
     st.error(f"Erreur lors de la connexion à Google Sheets : {e}")
     st.stop()
