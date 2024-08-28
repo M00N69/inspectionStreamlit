@@ -20,10 +20,12 @@ st.markdown("""
         background-color: #f0f0f0;
         border: 2px solid #bbb;
         font-size: 16px;
+        cursor: pointer;
     }
     .button-container button.selected {
         background-color: #007BFF;
         color: white;
+        border-color: #007BFF;
     }
     .icon-button {
         display: inline-block;
@@ -157,36 +159,36 @@ if 'inspection_results' in st.session_state:
     for index, row in st.session_state.inspection_results.iterrows():
         # Boutons de conformité stylisés
         st.write(f"Évaluation pour {row['Critere']}")
-        conformity_status = st.radio(
-            "",
-            ["Conforme", "Non Conforme", "Non Applicable"],
-            key=f"conformity_{index}"
-        )
-        conformity_class = "selected" if conformity_status else ""
-        
+
+        if f"conformity_{index}" not in st.session_state:
+            st.session_state[f"conformity_{index}"] = "Non Applicable"
+
+        conformity_status = st.session_state[f"conformity_{index}"]
+
         # Affichage des boutons de conformité
         st.markdown(f"""
         <div class="button-container">
-            <button class="{conformity_class if conformity_status == 'Conforme' else ''}">Conforme</button>
-            <button class="{conformity_class if conformity_status == 'Non Conforme' else ''}">Non Conforme</button>
-            <button class="{conformity_class if conformity_status == 'Non Applicable' else ''}">Non Applicable</button>
-            <span class="icon-button">✎</span>
-            <span class="icon-button">📷</span>
+            <button class="{'selected' if conformity_status == 'Conforme' else ''}" onclick="document.getElementById('form_{index}').submit();">Conforme</button>
+            <button class="{'selected' if conformity_status == 'Non Conforme' else ''}" onclick="document.getElementById('form_{index}').submit();">Non Conforme</button>
+            <button class="{'selected' if conformity_status == 'Non Applicable' else ''}" onclick="document.getElementById('form_{index}').submit();">Non Applicable</button>
+            <span class="icon-button" onclick="document.getElementById('comment_{index}').style.display='block';">✎</span>
+            <span class="icon-button" onclick="document.getElementById('photo_{index}').click();">📷</span>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Commentaires
-        comment = st.text_area(f"Ajouter un commentaire pour {row['Critere']}", key=f"comment_{index}")
-        photo_link = st.text_input(f"Lien photo pour {row['Critere']}", key=f"photo_link_{index}")
 
-        st.session_state.inspection_results.at[index, 'Conformité'] = conformity_status
-        st.session_state.inspection_results.at[index, 'Commentaires'] = comment
-        st.session_state.inspection_results.at[index, 'Lien Photo'] = photo_link
+        # Capture de la sélection des boutons
+        if conformity_status == "Conforme":
+            st.session_state[f"conformity_{index}"] = "Conforme"
+        elif conformity_status == "Non Conforme":
+            st.session_state[f"conformity_{index}"] = "Non Conforme"
+        else:
+            st.session_state[f"conformity_{index}"] = "Non Applicable"
 
-    if st.button("Enregistrer les résultats de l'inspection"):
-        try:
-            result_sheet.update([st.session_state.inspection_results.columns.values.tolist()] + st.session_state.inspection_results.values.tolist())
-            st.success("Résultats de l'inspection enregistrés avec succès.")
-        except Exception as e:
-            st.error(f"Erreur lors de l'enregistrement des résultats de l'inspection : {e}")
+        # Champs de commentaire et d'upload de photo
+        comment_visibility = "block" if conformity_status == "Non Conforme" else "none"
+        st.text_area(f"Ajouter un commentaire pour {row['Critere']}", key=f"comment_{index}", value="", style=f"display:{comment_visibility};")
 
+        # Uploader une photo lorsqu'on clique sur l'icône photo
+        st.file_uploader("", key=f"photo_{index}", type=["jpg", "jpeg", "png"], accept_multiple_files=False, style="display:none;")
+
+        st.session_state.inspection_results.at[index, 'Conformité'] = st.session_state[f"conformity_{index}"]
