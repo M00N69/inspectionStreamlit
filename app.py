@@ -20,6 +20,7 @@ credentials = Credentials.from_service_account_info(
 gc = gspread.authorize(credentials)
 try:
     sheet = gc.open("LISTCONTROLE").worksheet("table")  # Remplace "table" par le nom réel de ton worksheet
+    result_sheet = gc.open("LISTCONTROLE").worksheet("resultat")
 except Exception as e:
     st.error(f"Erreur lors de la connexion à Google Sheets : {e}")
     st.stop()
@@ -33,8 +34,13 @@ except Exception as e:
     st.stop()
 
 st.title("Application de Gestion des Checklists d'Inspection avec Google Sheets")
+
+# Chargement des Checklists
+if 'df_checklists' not in st.session_state:
+    st.session_state.df_checklists = df
+
 st.write("Données récupérées depuis Google Sheets:")
-st.dataframe(df)
+st.dataframe(st.session_state.df_checklists)
 
 # Connexion à Google Drive
 def connect_to_gdrive():
@@ -73,66 +79,60 @@ if uploaded_file:
         try:
             sheet.update([df_upload.columns.values.tolist()] + df_upload.values.tolist())
             st.success("Checklist enregistrée avec succès.")
+            st.session_state.df_checklists = df_upload
         except Exception as e:
             st.error(f"Erreur lors de l'enregistrement de la checklist : {e}")
 
 # Étape 2 : Sélection d'une checklist et gestion des inspections
 if st.button("Charger les checklists"):
-    try:
-        checklists = sheet.get_all_records()
-        df_checklists = pd.DataFrame(checklists)
-        st.dataframe(df_checklists)
-    except Exception as e:
-        st.error(f"Erreur lors de la récupération des checklists : {e}")
-        st.stop()
+    st.session_state.df_checklists = pd.DataFrame(sheet.get_all_records())
+    st.dataframe(st.session_state.df_checklists)
 
-    if not df_checklists.empty:
-        # Sélection d'une ZONE spécifique pour l'inspection
-        selected_zone = st.selectbox("Choisir une ZONE", options=df_checklists["ZONE"].unique())
-        if selected_zone:
-            st.write(f"ZONE sélectionnée : {selected_zone}")
-            filtered_checklist = df_checklists[df_checklists["ZONE"] == selected_zone]
-            st.dataframe(filtered_checklist)
+if not st.session_state.df_checklists.empty:
+    selected_zone = st.selectbox("Choisir une ZONE", options=st.session_state.df_checklists["ZONE"].unique())
+    if selected_zone:
+        st.write(f"ZONE sélectionnée : {selected_zone}")
+        filtered_checklist = st.session_state.df_checklists[st.session_state.df_checklists["ZONE"] == selected_zone]
+        st.dataframe(filtered_checklist)
 
-            # Uploader une photo pour l'inspection
-            photo = st.file_uploader("Ajouter une photo pour cette inspection", type=["jpg", "jpeg", "png"])
-            if photo:
-                folder_id = "1hwT-4Xszxu7QCnb9jw7M2eVOnQ-kq-8c"  # ID du dossier Google Drive
-                file_id = upload_photo(photo, folder_id)
-                if file_id:
-                    st.success(f"Photo téléchargée avec succès. File ID: {file_id}")
+        # Stocker les résultats de conformité dans session_state
+        if 'inspection_results' not in st.session_state:
+            st.session_state.inspection_results = filtered_checklist.copy()
+            st.session_state.inspection_results['Conformité'] = ""
+            st.session_state.inspection_results['Commentaires'] = ""
+            st.session_state.inspection_results['Lien Photo'] = ""
+
+        # Uploader une photo pour l'inspection
+        photo = st.file_uploader("Ajouter une photo pour cette inspection", type=["jpg", "jpeg", "png"])
+        if photo:
+            folder_id = "1hwT-4Xszxu7QCnb9jw7M2eVOnQ-kq-8c"  # ID du dossier Google Drive
+            file_id = upload_photo(photo, folder_id)
+            if file_id:
+                st.success(f"Photo téléchargée avec succès. File ID: {file_id}")
 
 # Étape 3 : Finaliser l'inspection et enregistrer les résultats
 st.header("Finaliser l'inspection")
 
-# Récapitulatif des résultats de l'inspection
-if 'filtered_checklist' in locals() and not filtered_checklist.empty:
+if 'inspection_results' in st.session_state:
     st.subheader("Résumé de l'inspection")
-    inspection_results = filtered_checklist.copy()
-
-    # Ajout de colonnes pour les résultats (conformité, commentaires, lien photo)
-    inspection_results['Conformité'] = ""
-    inspection_results['Commentaires'] = ""
-    inspection_results['Lien Photo'] = ""
-
-    for index, row in inspection_results.iterrows():
+    for index, row in st.session_state.inspection_results.iterrows():
         conformity_status = st.radio(
-            f"Évaluation pour {row['Critere']}",  # Utilisation de la colonne "Critere"
+            f"Évaluation pour {row['Critere']}",
             ["Conforme", "Non Conforme", "Non Applicable"],
             key=f"conformity_{index}"
         )
         comment = st.text_area(f"Ajouter un commentaire pour {row['Critere']}", key=f"comment_{index}")
-        photo_link = st.text_input(f"Lien photo pour {row['Critere']}", key=f"photo_link_{index}", value=row['Lien Photo'])
+        photo_link = st.text_input(f"Lien photo pour {row['Critere']}", key=f"photo_link_{index}")
 
-        inspection_results.at[index, 'Conformité'] = conformity_status
-        inspection_results.at[index, 'Commentaires'] = comment
-        inspection_results.at[index, 'Lien Photo'] = photo_link
+        st.session_state.inspection_results.at[index, 'Conformité'] = conformity_status
+        st.session_state.inspection_results.at[index, 'Commentaires'] = comment
+        st.session_state.inspection_results.at[index, 'Lien Photo'] = photo_link
 
     if st.button("Enregistrer les résultats de l'inspection"):
         try:
-            result_sheet = gc.open("LISTCONTROLE").worksheet("resultat")
-            result_sheet.update([inspection_results.columns.values.tolist()] + inspection_results.values.tolist())
+            result_sheet.update([st.session_state.inspection_results.columns.values.tolist()] + st.session_state.inspection_results.values.tolist())
             st.success("Résultats de l'inspection enregistrés avec succès.")
         except Exception as e:
             st.error(f"Erreur lors de l'enregistrement des résultats de l'inspection : {e}")
+
 
