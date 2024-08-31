@@ -70,18 +70,18 @@ credentials = Credentials.from_service_account_info(
 # Connexion à Google Sheets via gspread
 gc = gspread.authorize(credentials)
 try:
-    sheet = gc.open("LISTCONTROLE").worksheet("table")  # Remplace "table" par le nom de ton worksheet
+    sheet = gc.open("LISTCONTROLE").worksheet("table")
     result_sheet = gc.open("LISTCONTROLE").worksheet("resultat")
 
     # Récupérer les données depuis Google Sheets
-    data = sheet.get_all_records()  # Fetch all records from the specified worksheet
+    data = sheet.get_all_records()
     df = pd.DataFrame(data)
     if df.empty:
         st.error("La feuille de calcul est vide ou les données n'ont pas été correctement récupérées.")
         st.stop()
 except Exception as e:
     st.error(f"Erreur lors de la récupération des données de Google Sheets : {e}")
-    df = pd.DataFrame()  # Fallback to empty DataFrame
+    df = pd.DataFrame()
 
 # Initialize session state if not already done
 if 'df_checklists' not in st.session_state:
@@ -140,20 +140,18 @@ if selected_zone:
 
         conformity_status = st.session_state[f"conformity_{index}"]
 
-        # Dynamic classes for button colors
-        conform_class = "selected-conforme" if conformity_status == "Conforme" else ""
-        non_conform_class = "selected-non-conforme" if conformity_status == "Non Conforme" else ""
-        na_class = "selected-na" if conformity_status == "Non Applicable" else ""
-
         # Create buttons and handle click events
         col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 1, 1])
         with col1:
+            button_class = "selected-conforme" if conformity_status == "Conforme" else ""
             if st.button("Conforme", key=f"conforme_{index}"):
                 st.session_state[f"conformity_{index}"] = "Conforme"
         with col2:
+            button_class = "selected-non-conforme" if conformity_status == "Non Conforme" else ""
             if st.button("Non Conforme", key=f"non_conforme_{index}"):
                 st.session_state[f"conformity_{index}"] = "Non Conforme"
         with col3:
+            button_class = "selected-na" if conformity_status == "Non Applicable" else ""
             if st.button("Non Applicable", key=f"na_{index}"):
                 st.session_state[f"conformity_{index}"] = "Non Applicable"
         with col4:
