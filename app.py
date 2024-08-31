@@ -83,6 +83,16 @@ except Exception as e:
 if 'df_checklists' not in st.session_state:
     st.session_state.df_checklists = df
 
+# Chargement d'une nouvelle grille à partir d'un fichier Excel
+uploaded_file = st.file_uploader("Charger une nouvelle grille d'inspection (fichier Excel)", type="xlsx")
+if uploaded_file:
+    try:
+        new_data = pd.read_excel(uploaded_file)
+        st.session_state.df_checklists = new_data
+        st.success("Nouvelle grille chargée avec succès.")
+    except Exception as e:
+        st.error(f"Erreur lors du chargement du fichier Excel : {e}")
+
 # Now you can continue with your app logic
 st.title("Application de Gestion des Checklists d'Inspection avec Google Sheets")
 
@@ -110,9 +120,16 @@ if selected_zone:
     for index, row in st.session_state.inspection_results.iterrows():
         criterion = row['Critere']
         st.subheader(criterion)
-        
+
+        # Initialiser les états si non présents
+        if f"conformity_{index}" not in st.session_state:
+            st.session_state[f"conformity_{index}"] = "Non Applicable"
+            st.session_state[f"show_comment_{index}"] = False
+            st.session_state[f"show_photo_{index}"] = False
+
         # Gestion du statut de conformité
-        conformity_status = st.session_state.get(f"conformity_{index}", "Non Applicable")
+        conformity_status = st.session_state[f"conformity_{index}"]
+
         if st.button(f"Conforme {index}", key=f"conforme_btn_{index}"):
             st.session_state[f"conformity_{index}"] = "Conforme"
         if st.button(f"Non Conforme {index}", key=f"non_conforme_btn_{index}"):
@@ -121,6 +138,7 @@ if selected_zone:
             st.session_state[f"conformity_{index}"] = "Non Applicable"
 
         st.write(f"Statut sélectionné pour {criterion}: {st.session_state[f'conformity_{index}']}")
+
 
 
     # Gestion des commentaires et des photos
