@@ -201,3 +201,4 @@ if st.button("Enregistrer les résultats de l'inspection"):
         except Exception as e:
             st.error(f"Erreur lors de l'enregistrement des résultats de l'inspection : {e}")
 
+
