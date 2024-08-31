@@ -180,3 +180,26 @@ if st.button("Enregistrer les résultats de l'inspection"):
             st.success("Résultats de l'inspection enregistrés avec succès.")
         except Exception as e:
             st.error(f"Erreur lors de l'enregistrement des résultats de l'inspection : {e}")
+
+# Try to retrieve data from Google Sheets
+try:
+    data = sheet.get_all_records()  # Fetch all records from the specified worksheet
+    df = pd.DataFrame(data)
+    if df.empty:
+        st.error("La feuille de calcul est vide ou les données n'ont pas été correctement récupérées.")
+        st.stop()
+except Exception as e:
+    st.error(f"Erreur lors de la récupération des données de Google Sheets : {e}")
+    st.stop()
+
+# Initialize session state if not already done
+if 'df_checklists' not in st.session_state:
+    st.session_state.df_checklists = df
+
+# Ensure data was fetched correctly
+if not df.empty:
+    st.session_state.df_checklists = df
+else:
+    st.error("Données non récupérées, la variable 'df' est vide.")
+    st.stop()
+
