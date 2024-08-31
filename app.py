@@ -87,6 +87,16 @@ except Exception as e:
 if 'df_checklists' not in st.session_state:
     st.session_state.df_checklists = df
 
+# Handling file upload for new checklist (zones and criteria)
+uploaded_file = st.file_uploader("Charger une nouvelle grille d'inspection (fichier Excel)", type="xlsx")
+if uploaded_file:
+    try:
+        new_data = pd.read_excel(uploaded_file)
+        st.session_state.df_checklists = new_data
+        st.success("Nouvelle grille chargée avec succès.")
+    except Exception as e:
+        st.error(f"Erreur lors du chargement du fichier Excel : {e}")
+
 # Initialisation de l'audit avec un ID unique et la date actuelle
 if 'audit_id' not in st.session_state:
     st.session_state['audit_id'] = str(uuid.uuid4())
