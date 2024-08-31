@@ -87,38 +87,35 @@ except Exception as e:
 if 'df_checklists' not in st.session_state:
     st.session_state.df_checklists = df
 
-# Chargement d'une nouvelle grille à partir d'un fichier Excel
-uploaded_file = st.file_uploader("Charger une nouvelle grille d'inspection (fichier Excel)", type="xlsx")
-if uploaded_file:
-    try:
-        new_data = pd.read_excel(uploaded_file)
-        st.session_state.df_checklists = new_data
-        st.success("Nouvelle grille chargée avec succès.")
-    except Exception as e:
-        st.error(f"Erreur lors du chargement du fichier Excel : {e}")
-
-# Now you can continue with your app logic
-st.title("Application de Gestion des Checklists d'Inspection avec Google Sheets")
-
 # Initialisation de l'audit avec un ID unique et la date actuelle
 if 'audit_id' not in st.session_state:
     st.session_state['audit_id'] = str(uuid.uuid4())
     st.session_state['audit_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+# Track the previously selected zone
+if 'selected_zone' not in st.session_state:
+    st.session_state.selected_zone = None
+
 # Sélection de la zone
 st.write("Sélectionnez la zone à auditer:")
 selected_zone = st.selectbox("Choisir une ZONE", options=st.session_state.df_checklists["ZONE"].unique())
 
+# Check if the zone has changed
+if st.session_state.selected_zone != selected_zone:
+    st.session_state.selected_zone = selected_zone
+    # Filter the checklist based on the selected zone
+    filtered_checklist = st.session_state.df_checklists[st.session_state.df_checklists["ZONE"] == selected_zone]
+    st.session_state.inspection_results = filtered_checklist.copy()
+    st.session_state.inspection_results['Conformité'] = ""
+    st.session_state.inspection_results['Commentaires'] = ""
+    st.session_state.inspection_results['Lien Photo'] = ""
+
+# Now you can continue with your app logic
+st.title("Application de Gestion des Checklists d'Inspection avec Google Sheets")
+
 if selected_zone:
     st.write(f"ZONE sélectionnée : {selected_zone}")
     filtered_checklist = st.session_state.df_checklists[st.session_state.df_checklists["ZONE"] == selected_zone]
-
-    # Préparation des résultats d'inspection
-    if 'inspection_results' not in st.session_state:
-        st.session_state.inspection_results = filtered_checklist.copy()
-        st.session_state.inspection_results['Conformité'] = ""
-        st.session_state.inspection_results['Commentaires'] = ""
-        st.session_state.inspection_results['Lien Photo'] = ""
 
     # Affichage des critères
     for index, row in st.session_state.inspection_results.iterrows():
@@ -200,5 +197,6 @@ if st.button("Enregistrer les résultats de l'inspection"):
             st.success("Résultats de l'inspection enregistrés avec succès.")
         except Exception as e:
             st.error(f"Erreur lors de l'enregistrement des résultats de l'inspection : {e}")
+
 
 
