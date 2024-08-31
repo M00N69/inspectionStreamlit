@@ -26,9 +26,17 @@ st.markdown("""
         cursor: pointer;
         margin-right: 5px;
     }
-    .conformity-button.selected {
-        background-color: #007BFF;
-        border-color: #007BFF;
+    .conformity-button.selected-conforme {
+        background-color: #28a745; /* Green for Conforme */
+        border-color: #28a745;
+    }
+    .conformity-button.selected-non-conforme {
+        background-color: #dc3545; /* Red for Non Conforme */
+        border-color: #dc3545;
+    }
+    .conformity-button.selected-na {
+        background-color: #6c757d; /* Grey for Non Applicable */
+        border-color: #6c757d;
     }
     .icon-button {
         display: inline-block;
@@ -73,7 +81,7 @@ try:
         st.stop()
 except Exception as e:
     st.error(f"Erreur lors de la récupération des données de Google Sheets : {e}")
-    st.stop()
+    df = pd.DataFrame()  # Fallback to empty DataFrame
 
 # Initialize session state if not already done
 if 'df_checklists' not in st.session_state:
@@ -125,6 +133,11 @@ if selected_zone:
 
         conformity_status = st.session_state[f"conformity_{index}"]
 
+        # Dynamic classes for button colors
+        conform_class = "selected-conforme" if conformity_status == "Conforme" else ""
+        non_conform_class = "selected-non-conforme" if conformity_status == "Non Conforme" else ""
+        na_class = "selected-na" if conformity_status == "Non Applicable" else ""
+
         # Create buttons and handle click events
         col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 1, 1])
         with col1:
@@ -172,11 +185,9 @@ def upload_photo(file, folder_id):
         st.error(f"Erreur lors de l'upload de la photo : {e}")
         return None
 
-# Vérifier si toutes les zones ont été auditées
-all_audited = all(st.session_state.inspection_results['Conformité'] != "")
-
 # Bouton pour enregistrer les résultats de l'inspection
 if st.button("Enregistrer les résultats de l'inspection"):
+    all_audited = all(st.session_state.inspection_results['Conformité'] != "")
     if not all_audited:
         st.error("L'audit est incomplet. Veuillez finaliser toutes les zones.")
     else:
@@ -189,3 +200,4 @@ if st.button("Enregistrer les résultats de l'inspection"):
             st.success("Résultats de l'inspection enregistrés avec succès.")
         except Exception as e:
             st.error(f"Erreur lors de l'enregistrement des résultats de l'inspection : {e}")
+
