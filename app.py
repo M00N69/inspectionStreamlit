@@ -12,21 +12,21 @@ st.markdown("""
     <style>
     .button-container {
         display: flex;
-        justify-content: space-around;
+        justify-content: space-between;
         margin-bottom: 10px;
     }
-    .button-container button {
+    .conformity-button {
         width: 150px;
         height: 50px;
         border-radius: 8px;
-        background-color: #f0f0f0;
+        background-color: #444;
         border: 2px solid #bbb;
         font-size: 16px;
+        color: white;
         cursor: pointer;
     }
-    .button-container button.selected {
+    .conformity-button.selected {
         background-color: #007BFF;
-        color: white;
         border-color: #007BFF;
     }
     .icon-button {
@@ -130,15 +130,42 @@ if selected_zone:
         # Gestion du statut de conformité
         conformity_status = st.session_state[f"conformity_{index}"]
 
-        if st.button(f"Conforme {index}", key=f"conforme_btn_{index}"):
-            st.session_state[f"conformity_{index}"] = "Conforme"
-        if st.button(f"Non Conforme {index}", key=f"non_conforme_btn_{index}"):
-            st.session_state[f"conformity_{index}"] = "Non Conforme"
-        if st.button(f"Non Applicable {index}", key=f"na_btn_{index}"):
-            st.session_state[f"conformity_{index}"] = "Non Applicable"
+        st.markdown(f"""
+        <div class="button-container">
+            <button class="conformity-button {'selected' if conformity_status == 'Conforme' else ''}" onclick="window.location.href='?conformity={index}&value=Conforme'">Conforme</button>
+            <button class="conformity-button {'selected' if conformity_status == 'Non Conforme' else ''}" onclick="window.location.href='?conformity={index}&value=Non Conforme'">Non Conforme</button>
+            <button class="conformity-button {'selected' if conformity_status == 'Non Applicable' else ''}" onclick="window.location.href='?conformity={index}&value=Non Applicable'">Non Applicable</button>
+            <span class="icon-button" onclick="window.location.href='?comment={index}'">✎</span>
+            <span class="icon-button" onclick="window.location.href='?photo={index}'">📷</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Handling the URL query parameters for conformity, comment, and photo actions
+        query_params = st.experimental_get_query_params()
+
+        if f'conformity' in query_params and query_params['conformity'][0] == str(index):
+            st.session_state[f"conformity_{index}"] = query_params['value'][0]
+
+        if f'comment' in query_params and query_params['comment'][0] == str(index):
+            st.session_state[f"show_comment_{index}"] = not st.session_state[f"show_comment_{index}"]
+
+        if f'photo' in query_params and query_params['photo'][0] == str(index):
+            st.session_state[f"show_photo_{index}"] = not st.session_state[f"show_photo_{index}"]
+
+        # Affichage conditionnel des champs de commentaire et de photo
+        if st.session_state[f"show_comment_{index}"]:
+            st.session_state.inspection_results.at[index, 'Commentaires'] = st.text_area(f"Commentaire pour {criterion}", key=f"comment_text_{index}")
+
+        if st.session_state[f"show_photo_{index}"]:
+            photo = st.file_uploader(f"Uploader une photo pour {criterion}", key=f"photo_upload_{index}", type=["jpg", "jpeg", "png"])
+            if photo:
+                folder_id = "1hwT-4Xszxu7QCnb9jw7M2eVOnQ-kq-8c"  # Dossier Google Drive constant
+                file_id = upload_photo(photo, folder_id)
+                if file_id:
+                    st.session_state.inspection_results.at[index, 'Lien Photo'] = f"https://drive.google.com/file/d/{file_id}/view"
+                    st.success(f"Photo téléchargée avec succès. [Voir la photo](https://drive.google.com/file/d/{file_id}/view)")
 
         st.write(f"Statut sélectionné pour {criterion}: {st.session_state[f'conformity_{index}']}")
-
 
 
     # Gestion des commentaires et des photos
