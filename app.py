@@ -67,21 +67,23 @@ gc = gspread.authorize(credentials)
 try:
     sheet = gc.open("LISTCONTROLE").worksheet("table")  # Remplace "table" par le nom de ton worksheet
     result_sheet = gc.open("LISTCONTROLE").worksheet("resultat")
-except Exception as e:
-    st.error(f"Erreur lors de la connexion à Google Sheets : {e}")
-    st.stop()
 
-# Connexion à Google Drive
-def connect_to_gdrive():
-    try:
-        service = build("drive", "v3", credentials=credentials)
-        return service
-    except Exception as e:
-        st.error(f"Erreur lors de la connexion à Google Drive : {e}")
+    # Récupérer les données depuis Google Sheets
+    data = sheet.get_all_records()  # Fetch all records from the specified worksheet
+    df = pd.DataFrame(data)
+    if df.empty:
+        st.error("La feuille de calcul est vide ou les données n'ont pas été correctement récupérées.")
         st.stop()
 
-drive_service = connect_to_gdrive()
+except Exception as e:
+    st.error(f"Erreur lors de la récupération des données de Google Sheets : {e}")
+    st.stop()
 
+# Initialize session state if not already done
+if 'df_checklists' not in st.session_state:
+    st.session_state.df_checklists = df
+
+# Now you can continue with your app logic
 st.title("Application de Gestion des Checklists d'Inspection avec Google Sheets")
 
 # Initialisation de l'audit avec un ID unique et la date actuelle
@@ -90,9 +92,6 @@ if 'audit_id' not in st.session_state:
     st.session_state['audit_date'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # Sélection de la zone
-if 'df_checklists' not in st.session_state:
-    st.session_state.df_checklists = df
-
 st.write("Sélectionnez la zone à auditer:")
 selected_zone = st.selectbox("Choisir une ZONE", options=st.session_state.df_checklists["ZONE"].unique())
 
@@ -122,6 +121,7 @@ if selected_zone:
             st.session_state[f"conformity_{index}"] = "Non Applicable"
 
         st.write(f"Statut sélectionné pour {criterion}: {st.session_state[f'conformity_{index}']}")
+
 
     # Gestion des commentaires et des photos
     for index, row in st.session_state.inspection_results.iterrows():
